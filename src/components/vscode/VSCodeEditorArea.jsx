@@ -6,16 +6,92 @@ import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 
 function InlineImageViewer({ projectName, file }) {
+  const [imageUrl, setImageUrl] = useState(null);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!file || !projectName) {
+      setImageUrl(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    let objectUrl;
+    const controller = new AbortController();
+
+    const loadImage = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        setImageUrl(null);
+
+        const token = localStorage.getItem('auth-token');
+        if (!token) {
+          setError('Missing authentication token');
+          return;
+        }
+
+        const imagePath = `/api/projects/${projectName}/files/content?path=${encodeURIComponent(file.path)}`;
+        const response = await fetch(imagePath, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+          signal: controller.signal
+        });
+
+        if (!response.ok) {
+          throw new Error(`Request failed with status ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        objectUrl = URL.createObjectURL(blob);
+        setImageUrl(objectUrl);
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          return;
+        }
+        console.error('Error loading inline image:', err);
+        setError('Unable to load image');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadImage();
+
+    return () => {
+      controller.abort();
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [projectName, file?.path]);
+
   if (!file) return null;
-  const imagePath = `/api/projects/${projectName}/files/content?path=${encodeURIComponent(file.path)}`;
+
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      <div className="flex-1 min-h-0 flex items-center justify-center bg-background">
-        <img
-          src={imagePath}
-          alt={file.name}
-          className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-md"
-        />
+      <div className="flex-1 min-h-0 flex items-center justify-center bg-background px-4">
+        {loading && (
+          <div className="text-center text-muted-foreground">
+            <p>Loading image…</p>
+          </div>
+        )}
+        {!loading && imageUrl && (
+          <img
+            src={imageUrl}
+            alt={file.name}
+            className="max-w-full max-h-[70vh] object-contain rounded-lg shadow-md"
+          />
+        )}
+        {!loading && !imageUrl && (
+          <div className="text-center text-muted-foreground">
+            <p>{error || 'Unable to load image'}</p>
+            <p className="text-xs mt-2 break-all">{file.path}</p>
+          </div>
+        )}
       </div>
     </div>
   );
