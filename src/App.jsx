@@ -19,10 +19,11 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useParams } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Settings as SettingsIcon, Sparkles } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
+import VSCodeMainContent from './components/vscode/VSCodeMainContent';
 import MobileNav from './components/MobileNav';
 import Settings from './components/Settings';
 import QuickSettingsPanel from './components/QuickSettingsPanel';
@@ -42,6 +43,8 @@ import { api, authenticatedFetch } from './utils/api';
 function AppContent() {
   const navigate = useNavigate();
   const { sessionId } = useParams();
+  const location = useLocation();
+  const isVSCode = location.pathname.startsWith('/vscode');
   
   const { updateAvailable, latestVersion, currentVersion, releaseInfo } = useVersionCheck('siteboon', 'claudecodeui');
   const [showVersionModal, setShowVersionModal] = useState(false);
@@ -353,7 +356,7 @@ function AppContent() {
   const handleProjectSelect = (project) => {
     setSelectedProject(project);
     setSelectedSession(null);
-    navigate('/');
+    navigate(isVSCode ? '/vscode' : '/');
     if (isMobile) {
       setSidebarOpen(false);
     }
@@ -386,14 +389,14 @@ function AppContent() {
         setSidebarOpen(false);
       }
     }
-    navigate(`/session/${session.id}`);
+    navigate(`${isVSCode ? '/vscode' : ''}/session/${session.id}`);
   };
 
   const handleNewSession = (project) => {
     setSelectedProject(project);
     setSelectedSession(null);
     setActiveTab('chat');
-    navigate('/');
+    navigate(isVSCode ? '/vscode' : '/');
     if (isMobile) {
       setSidebarOpen(false);
     }
@@ -872,7 +875,34 @@ function AppContent() {
 
       {/* Main Content Area - Flexible */}
       <div className={`flex-1 flex flex-col min-w-0 ${isMobile && !isInputFocused ? 'pb-16' : ''}`}>
-        <MainContent
+        {isVSCode ? (
+          <VSCodeMainContent
+            selectedProject={selectedProject}
+            selectedSession={selectedSession}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            ws={ws}
+            sendMessage={sendMessage}
+            messages={messages}
+            isMobile={isMobile}
+            isPWA={isPWA}
+            onMenuClick={() => setSidebarOpen(true)}
+            isLoading={isLoadingProjects}
+            onInputFocusChange={setIsInputFocused}
+            onSessionActive={markSessionAsActive}
+            onSessionInactive={markSessionAsInactive}
+            onReplaceTemporarySession={replaceTemporarySession}
+            onNavigateToSession={(sessionId) => navigate(`${isVSCode ? '/vscode' : ''}/session/${sessionId}`)}
+            onShowSettings={() => setShowSettings(true)}
+            autoExpandTools={autoExpandTools}
+            showRawParameters={showRawParameters}
+            showThinking={showThinking}
+            autoScrollToBottom={autoScrollToBottom}
+            sendByCtrlEnter={sendByCtrlEnter}
+            externalMessageUpdate={externalMessageUpdate}
+          />
+        ) : (
+          <MainContent
           selectedProject={selectedProject}
           selectedSession={selectedSession}
           activeTab={activeTab}
@@ -899,7 +929,8 @@ function AppContent() {
           autoScrollToBottom={autoScrollToBottom}
           sendByCtrlEnter={sendByCtrlEnter}
           externalMessageUpdate={externalMessageUpdate}
-        />
+          />
+        )}
       </div>
 
       {/* Mobile Bottom Navigation */}
@@ -956,6 +987,7 @@ function App() {
                   <Routes>
                     <Route path="/" element={<AppContent />} />
                     <Route path="/session/:sessionId" element={<AppContent />} />
+                    <Route path="/vscode/*" element={<AppContent />} />
                   </Routes>
                 </Router>
               </ProtectedRoute>
