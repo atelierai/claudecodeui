@@ -23,7 +23,7 @@ import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLoca
 import { Settings as SettingsIcon, Sparkles } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
-import VSCodeMainContent from './components/vscode/VSCodeMainContent';
+import IDEStyleMainContent from './components/idestyle/IDEStyleMainContent';
 import MobileNav from './components/MobileNav';
 import Settings from './components/Settings';
 import QuickSettingsPanel from './components/QuickSettingsPanel';
@@ -44,7 +44,7 @@ function AppContent() {
   const navigate = useNavigate();
   const { sessionId } = useParams();
   const location = useLocation();
-  const isVSCode = location.pathname.startsWith('/vscode');
+  const isIDERoute = location.pathname.startsWith('/ide');
   
   const { updateAvailable, latestVersion, currentVersion, releaseInfo } = useVersionCheck('siteboon', 'claudecodeui');
   const [showVersionModal, setShowVersionModal] = useState(false);
@@ -356,7 +356,7 @@ function AppContent() {
   const handleProjectSelect = (project) => {
     setSelectedProject(project);
     setSelectedSession(null);
-    navigate(isVSCode ? '/vscode' : '/');
+    navigate(isIDERoute ? '/ide' : '/');
     if (isMobile) {
       setSidebarOpen(false);
     }
@@ -389,14 +389,14 @@ function AppContent() {
         setSidebarOpen(false);
       }
     }
-    navigate(`${isVSCode ? '/vscode' : ''}/session/${session.id}`);
+    navigate(`${isIDERoute ? '/ide' : ''}/session/${session.id}`);
   };
 
   const handleNewSession = (project) => {
     setSelectedProject(project);
     setSelectedSession(null);
     setActiveTab('chat');
-    navigate(isVSCode ? '/vscode' : '/');
+    navigate(isIDERoute ? '/ide' : '/');
     if (isMobile) {
       setSidebarOpen(false);
     }
@@ -875,8 +875,8 @@ function AppContent() {
 
       {/* Main Content Area - Flexible */}
       <div className={`flex-1 flex flex-col min-w-0 ${isMobile && !isInputFocused ? 'pb-16' : ''}`}>
-        {isVSCode ? (
-          <VSCodeMainContent
+        {isIDERoute ? (
+          <IDEStyleMainContent
             selectedProject={selectedProject}
             selectedSession={selectedSession}
             activeTab={activeTab}
@@ -892,7 +892,7 @@ function AppContent() {
             onSessionActive={markSessionAsActive}
             onSessionInactive={markSessionAsInactive}
             onReplaceTemporarySession={replaceTemporarySession}
-            onNavigateToSession={(sessionId) => navigate(`${isVSCode ? '/vscode' : ''}/session/${sessionId}`)}
+            onNavigateToSession={(sessionId) => navigate(`${isIDERoute ? '/ide' : ''}/session/${sessionId}`)}
             onShowSettings={() => setShowSettings(true)}
             autoExpandTools={autoExpandTools}
             showRawParameters={showRawParameters}
@@ -987,7 +987,7 @@ function App() {
                   <Routes>
                     <Route path="/" element={<AppContent />} />
                     <Route path="/session/:sessionId" element={<AppContent />} />
-                    <Route path="/vscode/*" element={<AppContent />} />
+                    <Route path="/ide/*" element={<AppContent />} />
                   </Routes>
                 </Router>
               </ProtectedRoute>

@@ -6,7 +6,7 @@ import { Folder, FolderOpen, File, FileText, FileCode, List, TableProperties, Ey
 import { cn } from '../../lib/utils';
 import { api } from '../../utils/api';
 
-function VSCodeFileTree({ selectedProject, onFileSelect }) {
+function IDEStyleFileTree({ selectedProject, onFileSelect }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expandedDirs, setExpandedDirs] = useState(new Set());
@@ -287,5 +287,5 @@ function VSCodeFileTree({ selectedProject, onFileSelect }) {
   );
 }
 
-export default VSCodeFileTree;
+export default IDEStyleFileTree;
 

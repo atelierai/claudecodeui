@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import ChatInterface from '../ChatInterface';
-import VSCodeActivityBar from './VSCodeActivityBar';
-import VSCodeSidePanel from './VSCodeSidePanel';
-import VSCodeEditorArea from './VSCodeEditorArea';
+import IDEStyleActivityBar from './IDEStyleActivityBar';
+import IDEStyleSidePanel from './IDEStyleSidePanel';
+import IDEStyleEditorArea from './IDEStyleEditorArea';
 import ErrorBoundary from '../ErrorBoundary';
 import { useTaskMaster } from '../../contexts/TaskMasterContext';
 import { useTasksSettings } from '../../contexts/TasksSettingsContext';
 
-function VSCodeMainContent({
+function IDEStyleMainContent({
   selectedProject,
   selectedSession,
   activeTab,
@@ -96,7 +96,7 @@ function VSCodeMainContent({
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isDraggingDivider) return;
-      const container = document.getElementById('vscode-main-area');
+      const container = document.getElementById('idestyle-main-area');
       if (!container) return;
       const rect = container.getBoundingClientRect();
       const offsetX = e.clientX - rect.left;
@@ -227,12 +227,12 @@ function VSCodeMainContent({
 
   return (
     <div className="h-full min-h-0 flex bg-background">
-      <VSCodeActivityBar
+      <IDEStyleActivityBar
         activeView={sidePanelCollapsed ? null : activeView}
         onViewChange={handleViewChange}
       />
 
-      <VSCodeSidePanel
+      <IDEStyleSidePanel
         activeView={activeView}
         selectedProject={selectedProject}
         isMobile={isMobile}
@@ -242,11 +242,11 @@ function VSCodeMainContent({
         onGitFileOpen={handleGitFileOpen}
       />
 
-      <div id="vscode-main-area" className="flex-1 flex overflow-hidden min-h-0 h-full">
+      <div id="idestyle-main-area" className="flex-1 flex overflow-hidden min-h-0 h-full">
         {editorVisible && (
           <>
             <div style={{ width: `${editorWidth}%` }} className="flex-shrink-0 overflow-hidden min-h-0 flex flex-col">
-              <VSCodeEditorArea
+              <IDEStyleEditorArea
                 selectedProject={selectedProject}
                 selectedSession={selectedSession}
                 selectedFile={selectedFile}
@@ -296,4 +296,4 @@ function VSCodeMainContent({
   );
 }
 
-export default React.memo(VSCodeMainContent);
+export default React.memo(IDEStyleMainContent);

@@ -97,7 +97,7 @@ function InlineImageViewer({ projectName, file }) {
   );
 }
 
-function VSCodeEditorArea({
+function IDEStyleEditorArea({
   selectedProject,
   selectedSession,
   selectedFile,
@@ -214,4 +214,4 @@ function VSCodeEditorArea({
   );
 }
 
-export default VSCodeEditorArea;
+export default IDEStyleEditorArea;

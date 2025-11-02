@@ -1,9 +1,9 @@
 import React from 'react';
-import VSCodeFileTree from './VSCodeFileTree';
+import IDEStyleFileTree from './IDEStyleFileTree';
 import GitPanel from '../GitPanel';
 import { cn } from '../../lib/utils';
 
-function VSCodeSidePanel({
+function IDEStyleSidePanel({
   activeView,
   selectedProject,
   isMobile,
@@ -51,7 +51,7 @@ function VSCodeSidePanel({
 
           <div className="flex-1 overflow-hidden">
             {activeView === 'files' && (
-              <VSCodeFileTree
+              <IDEStyleFileTree
                 selectedProject={selectedProject}
                 onFileSelect={onFileSelect}
               />
@@ -70,4 +70,4 @@ function VSCodeSidePanel({
   );
 }
 
-export default VSCodeSidePanel;
+export default IDEStyleSidePanel;

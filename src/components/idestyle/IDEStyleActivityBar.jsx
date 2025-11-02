@@ -2,7 +2,7 @@ import React from 'react';
 import { FileText, GitBranch } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
-function VSCodeActivityBar({ activeView, onViewChange }) {
+function IDEStyleActivityBar({ activeView, onViewChange }) {
   const menuItems = [
     { id: 'files', icon: FileText, label: 'Files' },
     { id: 'git', icon: GitBranch, label: 'Source Control' }
@@ -37,5 +37,5 @@ function VSCodeActivityBar({ activeView, onViewChange }) {
   );
 }
 
-export default VSCodeActivityBar;
+export default IDEStyleActivityBar;
 
