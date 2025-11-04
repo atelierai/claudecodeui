@@ -32,7 +32,8 @@
     
     <!-- Service Worker Registration -->
     <script>
-      if ('serviceWorker' in navigator) {
+      // Register Service Worker only in web contexts (not file: / Electron)
+      if ('serviceWorker' in navigator && window.location.protocol !== 'file:') {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/sw.js')
             .then(registration => {
@@ -42,6 +43,8 @@
               console.log('SW registration failed: ', registrationError);
             });
         });
+      } else {
+        console.log('Skipping Service Worker registration (non-web context).');
       }
     </script>
   </body>

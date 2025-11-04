@@ -1,0 +1,24 @@
+appId: ai.siteboon.claudecodeui
+productName: Claude Code UI
+directories:
+  output: release
+files:
+  - dist/**/*
+  - server/**/*
+  - electron/common/**/*
+  - electron/main/**/*
+  - package.json
+  - package-lock.json
+asar: true
+extraMetadata:
+  main: electron/main/main.js
+win:
+  target:
+    - portable
+  artifactName: ClaudeCodeUI-${version}.exe
+mac:
+  target:
+    - dmg
+linux:
+  target:
+    - AppImage

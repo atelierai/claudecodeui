@@ -3,8 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { spawn } from 'child_process';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import Database from 'better-sqlite3';
 import crypto from 'crypto';
 
 const router = express.Router();
@@ -385,16 +384,12 @@ router.get('/sessions', async (req, res) => {
         } catch (_) {}
 
         // Open SQLite database
-        const db = await open({
-          filename: storeDbPath,
-          driver: sqlite3.Database,
-          mode: sqlite3.OPEN_READONLY
-        });
-        
+        const db = new Database(storeDbPath, { readonly: true });
+
         // Get metadata from meta table
-        const metaRows = await db.all(`
+        const metaRows = db.prepare(`
           SELECT key, value FROM meta
-        `);
+        `).all();
         
         let sessionData = {
           id: sessionId,
@@ -456,20 +451,20 @@ router.get('/sessions', async (req, res) => {
         
         // Get message count from JSON blobs only (actual messages, not DAG structure)
         try {
-          const blobCount = await db.get(`
-            SELECT COUNT(*) as count 
-            FROM blobs 
+          const blobCount = db.prepare(`
+            SELECT COUNT(*) as count
+            FROM blobs
             WHERE substr(data, 1, 1) = X'7B'
-          `);
+          `).get();
           sessionData.messageCount = blobCount.count;
-          
+
           // Get the most recent JSON blob for preview (actual message, not DAG structure)
-          const lastBlob = await db.get(`
-            SELECT data FROM blobs 
+          const lastBlob = db.prepare(`
+            SELECT data FROM blobs
             WHERE substr(data, 1, 1) = X'7B'
-            ORDER BY rowid DESC 
+            ORDER BY rowid DESC
             LIMIT 1
-          `);
+          `).get();
           
           if (lastBlob && lastBlob.data) {
             try {
@@ -523,8 +518,8 @@ router.get('/sessions', async (req, res) => {
         } catch (e) {
           console.log('Could not read blobs:', e.message);
         }
-        
-        await db.close();
+
+        db.close();
 
         // Finalize createdAt: use parsed meta value when valid, else fall back to store.db mtime
         if (!sessionData.createdAt) {
@@ -587,16 +582,12 @@ router.get('/sessions/:sessionId', async (req, res) => {
     
     
     // Open SQLite database
-    const db = await open({
-      filename: storeDbPath,
-      driver: sqlite3.Database,
-      mode: sqlite3.OPEN_READONLY
-    });
-    
+    const db = new Database(storeDbPath, { readonly: true });
+
     // Get all blobs to build the DAG structure
-    const allBlobs = await db.all(`
+    const allBlobs = db.prepare(`
       SELECT rowid, id, data FROM blobs
-    `);
+    `).all();
     
     // Build the DAG structure from parent-child relationships
     const blobMap = new Map(); // id -> blob data
@@ -768,8 +759,8 @@ router.get('/sessions/:sessionId', async (req, res) => {
         console.log(`Skipping blob ${blob.id}: ${e.message}`);
       }
     }
-    
-    await db.close();
+
+    db.close();
     
     res.json({ 
       success: true, 

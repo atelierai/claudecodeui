@@ -1,16 +1,31 @@
+// Get the correct API base URL based on environment
+const getApiBaseUrl = () => {
+  // In Electron production mode, connect to local server
+  if (window.location.protocol === 'file:') {
+    return 'http://localhost:3001';
+  }
+  // In web mode, use relative paths
+  return '';
+};
+
 // Utility function for authenticated API calls
 export const authenticatedFetch = (url, options = {}) => {
   const token = localStorage.getItem('auth-token');
-  
+
   const defaultHeaders = {
     'Content-Type': 'application/json',
   };
-  
+
   if (token) {
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   }
-  
-  return fetch(url, {
+
+  // Convert absolute URLs to full URLs in Electron mode
+  const fetchUrl = (url.startsWith('/') && window.location.protocol === 'file:')
+    ? `${getApiBaseUrl()}${url}`
+    : url;
+
+  return fetch(fetchUrl, {
     ...options,
     headers: {
       ...defaultHeaders,
@@ -23,17 +38,32 @@ export const authenticatedFetch = (url, options = {}) => {
 export const api = {
   // Auth endpoints (no token required)
   auth: {
-    status: () => fetch('/api/auth/status'),
-    login: (username, password) => fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    }),
-    register: (username, password) => fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    }),
+    status: () => {
+      const url = window.location.protocol === 'file:'
+        ? `${getApiBaseUrl()}/api/auth/status`
+        : '/api/auth/status';
+      return fetch(url);
+    },
+    login: (username, password) => {
+      const url = window.location.protocol === 'file:'
+        ? `${getApiBaseUrl()}/api/auth/login`
+        : '/api/auth/login';
+      return fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+    },
+    register: (username, password) => {
+      const url = window.location.protocol === 'file:'
+        ? `${getApiBaseUrl()}/api/auth/register`
+        : '/api/auth/register';
+      return fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+    },
     user: () => authenticatedFetch('/api/auth/user'),
     logout: () => authenticatedFetch('/api/auth/logout', { method: 'POST' }),
   },

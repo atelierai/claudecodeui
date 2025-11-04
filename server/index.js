@@ -53,7 +53,7 @@ import http from 'http';
 import cors from 'cors';
 import { promises as fsPromises } from 'fs';
 import { spawn } from 'child_process';
-import pty from 'node-pty';
+import * as nodePty from 'node-pty';
 import fetch from 'node-fetch';
 import mime from 'mime-types';
 
@@ -79,7 +79,7 @@ const connectedClients = new Set();
 // Setup file system watcher for Claude projects folder using chokidar
 async function setupProjectsWatcher() {
     const chokidar = (await import('chokidar')).default;
-    const claudeProjectsPath = path.join(process.env.HOME, '.claude', 'projects');
+    const claudeProjectsPath = path.join((process.env.HOME || process.env.USERPROFILE || os.homedir()), '.claude', 'projects');
 
     if (projectsWatcher) {
         projectsWatcher.close();
@@ -246,10 +246,20 @@ app.use(express.static(path.join(__dirname, '../dist'), {
 
 // API Routes (protected)
 app.get('/api/config', authenticateToken, (req, res) => {
-    const host = req.headers.host || `${req.hostname}:${PORT}`;
+    // In Electron mode, always use localhost
+    const isElectron = req.headers['user-agent'] && req.headers['user-agent'].includes('Electron');
+    let host;
+
+    if (isElectron) {
+        host = `localhost:${PORT}`;
+    } else {
+        host = req.headers.host || `${req.hostname}:${PORT}`;
+    }
+
     const protocol = req.protocol === 'https' || req.get('x-forwarded-proto') === 'https' ? 'wss' : 'ws';
 
-    console.log('Config API called - Returning host:', host, 'Protocol:', protocol);
+    console.log('Config API called - User-Agent:', req.headers['user-agent']);
+    console.log('Config API called - Is Electron:', isElectron, 'Host:', host, 'Protocol:', protocol);
 
     res.json({
         serverPort: PORT,
@@ -869,7 +879,11 @@ function handleShellConnection(ws) {
                     const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
                     const shellArgs = os.platform() === 'win32' ? ['-Command', shellCommand] : ['-c', shellCommand];
 
-                    shellProcess = pty.spawn(shell, shellArgs, {
+                    if (!nodePty.default) {
+                    throw new Error('Terminal functionality not available: node-pty module could not be loaded');
+                  }
+
+                  shellProcess = nodePty.default.spawn(shell, shellArgs, {
                         name: 'xterm-256color',
                         cols: 80,
                         rows: 24,

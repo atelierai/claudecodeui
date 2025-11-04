@@ -392,26 +392,42 @@ function Shell({ selectedProject, selectedSession, isActive, initialCommand, isP
       // Fetch server configuration to get the correct WebSocket URL
       let wsBaseUrl;
       try {
-        const configResponse = await fetch('/api/config', {
+        const isElectron = window.location.protocol === 'file:';
+        const configUrl = isElectron
+          ? 'http://localhost:3001/api/config'
+          : '/api/config';
+        const configResponse = await fetch(configUrl, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
         const config = await configResponse.json();
         wsBaseUrl = config.wsUrl;
-        
-        // If the config returns localhost but we're not on localhost, use current host but with API server port
-        if (wsBaseUrl.includes('localhost') && !window.location.hostname.includes('localhost')) {
+
+        // Only rewrite localhost when NOT in Electron and we have a valid hostname
+        if (
+          !isElectron &&
+          wsBaseUrl.includes('localhost') &&
+          window.location.hostname &&
+          !window.location.hostname.includes('localhost')
+        ) {
           const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-          // For development, API server is typically on port 3002 when Vite is on 3001
           const apiPort = window.location.port === '3001' ? '3002' : window.location.port;
-          wsBaseUrl = `${protocol}//${window.location.hostname}:${apiPort}`;
+          wsBaseUrl = `${protocol}//${window.location.hostname}${apiPort ? `:${apiPort}` : ''}`;
+        }
+
+        // Safety: if malformed, default to localhost:3001
+        if (!/^wss?:\/\/[^\s/]+/.test(wsBaseUrl)) {
+          wsBaseUrl = 'ws://localhost:3001';
         }
       } catch (error) {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        // For development, API server is typically on port 3002 when Vite is on 3001
-        const apiPort = window.location.port === '3001' ? '3002' : window.location.port;
-        wsBaseUrl = `${protocol}//${window.location.hostname}:${apiPort}`;
+        if (window.location.protocol === 'file:') {
+          wsBaseUrl = 'ws://localhost:3001';
+        } else {
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          const apiPort = window.location.port === '3001' ? '3002' : window.location.port;
+          wsBaseUrl = `${protocol}//${window.location.hostname}${apiPort ? `:${apiPort}` : ''}`;
+        }
       }
       
       // Include token in WebSocket URL as query parameter

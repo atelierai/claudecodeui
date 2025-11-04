@@ -62,9 +62,13 @@ import fsSync from 'fs';
 import path from 'path';
 import readline from 'readline';
 import crypto from 'crypto';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
+import Database from 'better-sqlite3';
 import os from 'os';
+
+// Helper function to get home directory across platforms
+function getHomeDir() {
+  return process.env.HOME || process.env.USERPROFILE || os.homedir();
+}
 
 // Import TaskMaster detection functions
 async function detectTaskMasterFolder(projectPath) {
@@ -204,7 +208,7 @@ function clearProjectDirectoryCache() {
 
 // Load project configuration file
 async function loadProjectConfig() {
-  const configPath = path.join(process.env.HOME, '.claude', 'project-config.json');
+  const configPath = path.join(getHomeDir(), '.claude', 'project-config.json');
   try {
     const configData = await fs.readFile(configPath, 'utf8');
     return JSON.parse(configData);
@@ -216,7 +220,7 @@ async function loadProjectConfig() {
 
 // Save project configuration file
 async function saveProjectConfig(config) {
-  const claudeDir = path.join(process.env.HOME, '.claude');
+  const claudeDir = path.join(getHomeDir(), '.claude');
   const configPath = path.join(claudeDir, 'project-config.json');
   
   // Ensure the .claude directory exists
@@ -268,7 +272,7 @@ async function extractProjectDirectory(projectName) {
   }
   
   
-  const projectDir = path.join(process.env.HOME, '.claude', 'projects', projectName);
+  const projectDir = path.join(getHomeDir(), '.claude', 'projects', projectName);
   const cwdCounts = new Map();
   let latestTimestamp = 0;
   let latestCwd = null;
@@ -372,7 +376,7 @@ async function extractProjectDirectory(projectName) {
 }
 
 async function getProjects() {
-  const claudeDir = path.join(process.env.HOME, '.claude', 'projects');
+  const claudeDir = path.join(getHomeDir(), '.claude', 'projects');
   const config = await loadProjectConfig();
   const projects = [];
   const existingProjects = new Set();
@@ -522,7 +526,7 @@ async function getProjects() {
 }
 
 async function getSessions(projectName, limit = 5, offset = 0) {
-  const projectDir = path.join(process.env.HOME, '.claude', 'projects', projectName);
+  const projectDir = path.join(getHomeDir(), '.claude', 'projects', projectName);
 
   try {
     const files = await fs.readdir(projectDir);
@@ -804,7 +808,7 @@ async function parseJsonlSessions(filePath) {
 
 // Get messages for a specific session with pagination support
 async function getSessionMessages(projectName, sessionId, limit = null, offset = 0) {
-  const projectDir = path.join(process.env.HOME, '.claude', 'projects', projectName);
+  const projectDir = path.join(getHomeDir(), '.claude', 'projects', projectName);
 
   try {
     const files = await fs.readdir(projectDir);
@@ -893,7 +897,7 @@ async function renameProject(projectName, newDisplayName) {
 
 // Delete a session from a project
 async function deleteSession(projectName, sessionId) {
-  const projectDir = path.join(process.env.HOME, '.claude', 'projects', projectName);
+  const projectDir = path.join(getHomeDir(), '.claude', 'projects', projectName);
   
   try {
     const files = await fs.readdir(projectDir);
@@ -956,7 +960,7 @@ async function isProjectEmpty(projectName) {
 
 // Delete an empty project
 async function deleteProject(projectName) {
-  const projectDir = path.join(process.env.HOME, '.claude', 'projects', projectName);
+  const projectDir = path.join(getHomeDir(), '.claude', 'projects', projectName);
   
   try {
     // First check if the project is empty
@@ -996,7 +1000,7 @@ async function addProjectManually(projectPath, displayName = null) {
   
   // Check if project already exists in config
   const config = await loadProjectConfig();
-  const projectDir = path.join(process.env.HOME, '.claude', 'projects', projectName);
+  const projectDir = path.join(getHomeDir(), '.claude', 'projects', projectName);
 
   if (config[projectName]) {
     throw new Error(`Project already configured for path: ${absolutePath}`);
@@ -1064,16 +1068,12 @@ async function getCursorSessions(projectPath) {
         } catch (_) {}
 
         // Open SQLite database
-        const db = await open({
-          filename: storeDbPath,
-          driver: sqlite3.Database,
-          mode: sqlite3.OPEN_READONLY
-        });
-        
+        const db = new Database(storeDbPath, { readonly: true });
+
         // Get metadata from meta table
-        const metaRows = await db.all(`
+        const metaRows = db.prepare(`
           SELECT key, value FROM meta
-        `);
+        `).all();
         
         // Parse metadata
         let metadata = {};
@@ -1095,11 +1095,11 @@ async function getCursorSessions(projectPath) {
         }
         
         // Get message count
-        const messageCountResult = await db.get(`
+        const messageCountResult = db.prepare(`
           SELECT COUNT(*) as count FROM blobs
-        `);
-        
-        await db.close();
+        `).get();
+
+        db.close();
         
         // Extract session info
         const sessionName = metadata.title || metadata.sessionTitle || 'Untitled Session';

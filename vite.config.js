@@ -4,9 +4,18 @@ import react from '@vitejs/plugin-react'
 export default defineConfig(({ command, mode }) => {
   // Load env file based on `mode` in the current working directory.
   const env = loadEnv(mode, process.cwd(), '')
-  
-  
+
+  // For Electron builds, always use relative paths in production
+  // This ensures compatibility regardless of how the build is triggered
+  const isElectronBuild = mode === 'production' || process.env.ELECTRON === 'true'
+
+  const base = isElectronBuild ? './' : '/'
+
+  console.log('🔧 Vite config - mode:', mode, 'command:', command)
+  console.log('🔧 Vite config - isElectronBuild:', isElectronBuild, 'base:', base)
+
   return {
+    base,
     plugins: [react()],
     server: {
       port: parseInt(env.VITE_PORT) || 5173,

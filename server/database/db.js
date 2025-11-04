@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
+import os from 'os';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -23,7 +24,29 @@ const c = {
 };
 
 // Use DATABASE_PATH environment variable if set, otherwise use default location
-const DB_PATH = process.env.DATABASE_PATH || path.join(__dirname, 'auth.db');
+// In production (Electron), use user data directory to avoid write permission issues
+const getDefaultDbPath = () => {
+  if (process.env.DATABASE_PATH) {
+    return process.env.DATABASE_PATH;
+  }
+
+  // Check if running in packaged Electron app
+  if (process.env.NODE_ENV === 'production' && process.resourcesPath) {
+    // In Electron production, use app data directory
+    const userDataPath = path.join(os.homedir(), '.claude-code-ui');
+    try {
+      fs.mkdirSync(userDataPath, { recursive: true });
+      return path.join(userDataPath, 'auth.db');
+    } catch (error) {
+      console.error('Failed to create user data directory:', error.message);
+    }
+  }
+
+  // Default: use server/database directory
+  return path.join(__dirname, 'auth.db');
+};
+
+const DB_PATH = getDefaultDbPath();
 const INIT_SQL_PATH = path.join(__dirname, 'init.sql');
 
 // Ensure database directory exists if custom path is provided

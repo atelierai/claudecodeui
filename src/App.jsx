@@ -19,7 +19,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Settings as SettingsIcon, Sparkles } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import MainContent from './components/MainContent';
@@ -27,6 +27,7 @@ import IDEStyleMainContent from './components/idestyle/IDEStyleMainContent';
 import MobileNav from './components/MobileNav';
 import Settings from './components/Settings';
 import QuickSettingsPanel from './components/QuickSettingsPanel';
+import ElectronBootstrap from './components/electron/ElectronBootstrap';
 
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
@@ -41,6 +42,13 @@ import { api, authenticatedFetch } from './utils/api';
 
 // Main App component with routing
 function AppContent() {
+  // Electron debug info
+  console.log('🚀 React App component loading');
+  console.log('📍 Current URL:', window.location.href);
+  console.log('📍 Current pathname:', window.location.pathname);
+  console.log('🌐 User agent:', navigator.userAgent);
+  console.log('📱 Electron API available:', !!window.api);
+
   const navigate = useNavigate();
   const { sessionId } = useParams();
   const location = useLocation();
@@ -976,6 +984,102 @@ function AppContent() {
 
 // Root App component with router
 function App() {
+  const isElectron = typeof window !== 'undefined' && !!window.api;
+  const [bootstrapState, setBootstrapState] = useState(() => ({
+    status: isElectron ? 'checking' : 'ready',
+    manifest: null,
+    manifestPath: null,
+    error: null
+  }));
+
+  useEffect(() => {
+    if (!isElectron || typeof window === 'undefined' || !window.api) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchStatus = async () => {
+      try {
+        const res = await window.api.getRuntimeEnv();
+        if (cancelled) return;
+        if (res?.ok) {
+          setBootstrapState((prev) => {
+            if (prev.status === 'ready') return prev;
+            return {
+              status: 'needs-bootstrap',
+              manifest: res.manifest,
+              manifestPath: res.manifestPath,
+              error: null
+            };
+          });
+        } else {
+          setBootstrapState((prev) => {
+            if (prev.status === 'ready') return prev;
+            return {
+              status: 'needs-bootstrap',
+              manifest: null,
+              manifestPath: res?.manifestPath ?? null,
+              error: res?.error ?? null
+            };
+          });
+        }
+      } catch (error) {
+        if (cancelled) return;
+        setBootstrapState((prev) => {
+          if (prev.status === 'ready') return prev;
+          return {
+            status: 'needs-bootstrap',
+            manifest: null,
+            manifestPath: null,
+            error: error?.message || '无法检测运行环境'
+          };
+        });
+      }
+    };
+
+    fetchStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isElectron]);
+
+  const handleBootstrapReady = useCallback((manifest) => {
+    setBootstrapState({
+      status: 'ready',
+      manifest,
+      manifestPath: manifest?.manifestPath ?? null,
+      error: null
+    });
+  }, []);
+
+  if (isElectron && bootstrapState.status !== 'ready') {
+    return (
+      <ElectronBootstrap
+        initialStatus={bootstrapState}
+        onReady={handleBootstrapReady}
+      />
+    );
+  }
+
+  const RouterWrapper = ({ children }) => {
+    if (typeof window !== 'undefined' && (window.location.protocol === 'file:' || !!window.api)) {
+      console.log('Using HashRouter for Electron/file:// environment');
+      return (
+        <HashRouter>
+          {children}
+        </HashRouter>
+      );
+    }
+    console.log('Using BrowserRouter for web environment');
+    return (
+      <BrowserRouter>
+        {children}
+      </BrowserRouter>
+    );
+  };
+
   return (
     <ThemeProvider>
       <AuthProvider>
@@ -983,13 +1087,13 @@ function App() {
           <TasksSettingsProvider>
             <TaskMasterProvider>
               <ProtectedRoute>
-                <Router>
+                <RouterWrapper>
                   <Routes>
                     <Route path="/" element={<AppContent />} />
                     <Route path="/session/:sessionId" element={<AppContent />} />
                     <Route path="/ide/*" element={<AppContent />} />
                   </Routes>
-                </Router>
+                </RouterWrapper>
               </ProtectedRoute>
             </TaskMasterProvider>
           </TasksSettingsProvider>
