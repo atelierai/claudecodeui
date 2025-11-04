@@ -49,6 +49,7 @@ A desktop and mobile UI for [Claude Code](https://docs.anthropic.com/en/docs/cla
 - **Session Management** - Resume conversations, manage multiple sessions, and track history
 - **TaskMaster AI Integration** *(Optional)* - Advanced project management with AI-powered task planning, PRD parsing, and workflow automation
 - **Model Compatibility** - Works with Claude Sonnet 4, Opus 4.1, and GPT-5
+- **Electron Desktop Mode** - Bundle the UI as a desktop app with integrated Claude Code environment bootstrap
 
 
 ## Quick Start
@@ -105,6 +106,26 @@ cloudcli help
 # Show version
 cloudcli version
 ```
+
+## Electron Desktop Build
+
+Want a self-contained desktop experience that can bootstrap the Claude Code runtime automatically? The repository now bundles the original launcher inside the UI:
+
+- **Development**: run the web client and Electron shell together
+  ```bash
+  npm install
+  npm run dev:electron
+  ```
+  The Electron window will proxy to the Vite dev server. On first launch it shows a one-click installer that downloads Node.js, portable Git (Windows), and the Claude Code CLI into a private runtime directory.
+
+- **Packaging**: create installable builds for Windows, macOS, and Linux
+  ```bash
+  npm install
+  npm run build:electron
+  ```
+  Artifacts are written to the `release/` folder (portable `.exe`, `.dmg`, `.AppImage`, etc.). The packaged app runs the same bootstrap flow and starts the bundled Claude Code UI backend automatically once the environment is ready.
+
+During desktop startup the app checks for the launcher manifest. If the Claude Code environment is missing or incomplete, the installer view is displayed and must complete successfully before the regular homepage loads.
 
 **The `cloudcli status` command shows you:**
 - Installation directory location
