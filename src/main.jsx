@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
+import 'katex/dist/katex.min.css'
 
 // Global debug info
 console.log('🔧 Main entry point loading');
